@@ -13,7 +13,7 @@ console.log('payer',payer.publicKey.toBase58())
 
 let connection = new Connection(clusterApiUrl('devnet'));
 
-let balance = await connection.getBalanceAndContext(
+let res = await connection.getAccountInfoAndContext(
   payer.publicKey
 );
-console.log('balance = ', balance)
+console.log(JSON.stringify(res))
