@@ -4,28 +4,37 @@ import { Keypair, Connection, clusterApiUrl, LAMPORTS_PER_SOL, Transaction, Tran
 import bs58 from 'bs58';
 import fs from 'fs';
 
-let keypair = Keypair.generate();
-let payer = Keypair.generate();
 
-console.log(payer)
-console.log('receiver',bs58.encode(keypair._keypair.publicKey))
-console.log('payer',bs58.encode(payer._keypair.publicKey))
+let paySecret = fs.readFileSync('devkey-pay.json');
+let recSecret = fs.readFileSync('devkey-rec.json');
+let payerJSON = JSON.parse(paySecret);
+let recJSON = JSON.parse(recSecret);
+
+let payer = Keypair.fromSecretKey(Uint8Array.from(payerJSON))
+let rec = Keypair.fromSecretKey(Uint8Array.from(recJSON))
+
+console.log('payer',payer.publicKey.toBase58())
+console.log('rec',rec.publicKey.toBase58())
+
 let connection = new Connection(clusterApiUrl('devnet'));
 
-console.log(payer.publicKey.toString())
 let airdropSignature = await connection.requestAirdrop(
   payer.publicKey,
   LAMPORTS_PER_SOL,
 );
 
-console.log('airdrop sign', airdropSignature)
-await connection.confirmTransaction(airdropSignature);
+console.log('airdrop', airdropSignature)
+
+let bal = await connection.getBalance(
+  payer.publicKey
+);
+console.log('balance', bal)
 
 let allocateTransaction = new Transaction({
   feePayer: payer.publicKey
 });
 
-let keys = [{pubkey: keypair.publicKey, isSigner: true, isWritable: true}];
+let keys = [{pubkey: rec.publicKey, isSigner: true, isWritable: true}];
 let params = { space: 100 };
 
 let allocateStruct = {
@@ -46,6 +55,11 @@ allocateTransaction.add(new TransactionInstruction({
   data,
 }));
 
-let tx = await sendAndConfirmTransaction(connection, allocateTransaction, [payer, keypair]);
+let tx = await sendAndConfirmTransaction(connection, allocateTransaction, [payer, rec]);
 
 console.log('transaction', tx)
+
+let balAfter = await connection.getBalance(
+  payer.publicKey
+);
+console.log('balance', balAfter)
